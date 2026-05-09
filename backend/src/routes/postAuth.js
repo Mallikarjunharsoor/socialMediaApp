@@ -4,5 +4,7 @@ const multer = require('multer');
 const upload = multer({storage: multer.memoryStorage()});
 
 const postAuth = express.Router();
-postAuth.post('/post', upload.single('imgUrl'), postController);
+postAuth.post('/post', upload.single('imgUrl'), postController.postCreateController);
+postAuth.get('/posts', postController.postGetController);
+postAuth.get('/post/:id', postController.postDetailsController);
 module.exports = postAuth;
