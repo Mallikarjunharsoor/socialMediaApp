@@ -23,7 +23,7 @@ async function registerController(req, res) {
             bio,
             post
         })
-        const token = jwt.sign({id: newUser._id}, process.env.JWT_URI, {expiresIn: '1d'});
+        const token = jwt.sign({id: newUser._id, username: newUser.username}, process.env.JWT_URI, {expiresIn: '1d'});
         res.cookie('jwt-token', token);
         res.status(201).json({message: 'user created', newUser});
     }
@@ -45,7 +45,7 @@ async function registerController(req, res) {
                 res.status(400).json({message: 'invalid password'});
             }
     
-            const token = jwt.sign({id:user._id}, process.env.JWT_URI, {expiresIn: '1d'});
+            const token = jwt.sign({id:user._id, username: user.username}, process.env.JWT_URI, {expiresIn: '1d'});
             res.cookie('jwt-token', token);
             res.status(200).json({message: 'user logged in', user:({
                 username: user.username,
