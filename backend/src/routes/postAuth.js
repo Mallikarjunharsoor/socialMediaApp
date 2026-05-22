@@ -8,4 +8,6 @@ const postAuth = express.Router();
 postAuth.post('/post', upload.single('imgUrl'), identifyUser, postController.postCreateController);
 postAuth.get('/posts', identifyUser, postController.postGetController);
 postAuth.get('/post/:id', identifyUser, postController.postDetailsController);
+postAuth.get('/feed', identifyUser, postController.getposts);
+postAuth.post('/post/:id/like', identifyUser, postController.likedPostController);
 module.exports = postAuth;

@@ -1,6 +1,7 @@
-const crypto = require('crypto');
-const jwt = require('jsonwebtoken');
+const jwt = require('jsonwebtoken')
 const model = require('../models/model.database');
+const { identifyUser } = require('../middelwares/identify.middleware');
+const bcrypt = require('bcrypt');
 
 async function registerController(req, res) {
     const{username, email, password, bio, post} = req.body;
@@ -9,13 +10,13 @@ async function registerController(req, res) {
             {email},
             {username}
             ]
-});
+}).select('+password');
         if(user){
-            res.status(400).json({message: 'email or username already exists'});
+           return res.status(400).json({message: 'email or username already exists'});
         }
     
     
-        const cryptedPassword = crypto.createHash('sha256').update(password).digest('hex');
+        const cryptedPassword = bcrypt.hashSync(password, 10);
         const newUser = await model.create({
             username,
             email,
@@ -25,7 +26,8 @@ async function registerController(req, res) {
         })
         const token = jwt.sign({id: newUser._id, username: newUser.username}, process.env.JWT_URI, {expiresIn: '1d'});
         res.cookie('jwt-token', token);
-        res.status(201).json({message: 'user created', newUser});
+       return res.status(201).json({message: 'user created', newUser});
+        
     }
 
     async function loginController (req, res) {
@@ -35,14 +37,14 @@ async function registerController(req, res) {
                     {email},
                     {username}
                 ]
-            });
+            }).select('+password');
             if(!user){
-                res.status(400).json({message: 'user does not exist'});
+                return res.status(400).json({message: 'user does not exist'});
             }
     
-            const cryptedPassword = crypto.createHash('sha256').update(password).digest('hex');
-            if(cryptedPassword !== user.password){
-                res.status(400).json({message: 'invalid password'});
+            const cryptedPassword = bcrypt.compareSync(password, user.password);
+            if(!cryptedPassword){
+                return res.status(400).json({message: 'invalid password'});
             }
     
             const token = jwt.sign({id:user._id, username: user.username}, process.env.JWT_URI, {expiresIn: '1d'});
@@ -53,5 +55,14 @@ async function registerController(req, res) {
                 bio: user.bio,
                 post: user.post
             })});
+            
     }
-    module.exports = {registerController, loginController};
+
+    async function getMeController(req, res) {
+        const userId = req.user.id;
+
+        const user = await model.findById(userId);
+        res.status(200).json({message: 'user found', user});
+        return user;
+    }
+    module.exports = {registerController, loginController, getMeController};

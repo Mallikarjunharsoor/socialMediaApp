@@ -3,6 +3,7 @@ const { toFile } = require('@imagekit/nodejs');
 const jwt = require('jsonwebtoken');
 const postModel = require('..//models/model.posts');
 const { identifyUser } = require('../middelwares/identify.middleware');
+const isLikedModel = require('../models/model.isLiked');
 
 const imagekit = new ImageKit({
     privateKey: process.env.IMAGE_KIT_SECRETKEY
@@ -60,4 +61,45 @@ async function postDetailsController(req, res) {
     }
     res.status(200).json({message: 'post found', post});
 }
-module.exports = { postCreateController, postGetController, postDetailsController };
+
+async function likedPostController(req, res) {
+    const userId = req.user.id;
+    const postId = req.params.id;
+    const isLiked = await isLikedModel.findOne({
+        user: userId,
+        post: postId
+    })
+
+if(isLiked){
+    await isLikedModel.deleteOne({_id: isLiked._id})
+    return res.status(200).json({message: 'post unliked'});
+}else{ 
+    await isLikedModel.create({
+        post: postId,
+        user: userId
+    })
+    return res.status(200).json({message: 'post liked'}, isLiked);
+}
+}
+
+
+
+async function getposts(req, res){
+    const user = req.user.id;
+    const posts = await Promise.all((await postModel.find().populate('user').lean())
+.map(async post => {
+    const isLiked = await isLikedModel.findOne({
+        post: post._id,
+        user: user
+    })
+    post.isLiked = Boolean(isLiked);
+    return post
+}));
+    
+    if(!posts) {
+        res.status(404).json({message: 'no posts found'});
+    }
+    res.status(200).json({message: 'posts found', posts});
+    return posts;
+}
+module.exports = { postCreateController, postGetController, postDetailsController, getposts, likedPostController };
